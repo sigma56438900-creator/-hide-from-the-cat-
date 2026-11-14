@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>🐱 Прятки от кота — FINAL 4.0</title>
+<style>
+*{box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top,#263d5b 0%,#0b111c 70%);color:#fff}
+body{display:flex;justify-content:center;align-items:center}
+button{font-family:inherit}
+#game{width:min(1150px,100vw);height:min(920px,100vh);padding:10px;background:linear-gradient(#151f2e,#0e1622);border:2px solid #33465f;border-radius:22px;box-shadow:0 30px 100px rgba(0,0,0,.65);position:relative}
+h1{margin:2px 0 8px;text-align:center;font-size:clamp(20px,4vw,31px)}
+#hud{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:8px}
+.card{min-width:0;padding:7px 9px;background:rgba(8,15,26,.88);border:1px solid #34465e;border-radius:11px}
+.label{color:#94a3b8;font-size:10px}
+.value{margin-top:3px;font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{width:100%;height:6px;margin-top:5px;background:#263448;border-radius:20px;overflow:hidden}
+.fill{width:100%;height:100%;border-radius:inherit;transition:width .1s linear}
+#staminaFill{background:#22c55e}
+#noiseFill{background:#f59e0b}
+#dangerFill{background:#ef4444}
+#score{color:#facc15}
+#room{position:relative;width:100%;height:calc(100% - 147px);min-height:400px;overflow:hidden;border:3px solid #4b607c;border-radius:17px;background:linear-gradient(#cbb88d 0 69%,#815437 69% 100%);box-shadow:inset 0 0 90px rgba(0,0,0,.35)}
+#roomLight{position:absolute;width:600px;height:600px;left:50%;top:42%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,240,180,.26),rgba(255,240,180,.06) 40%,transparent 72%);pointer-events:none;z-index:1}
+#nightOverlay{position:absolute;inset:0;background:rgba(4,8,20,0);pointer-events:none;z-index:50;transition:background .4s}
+.window{position:absolute;left:42px;top:38px;width:145px;height:95px;border:10px solid #713f12;background:linear-gradient(135deg,#60a5fa,#dbeafe);z-index:4}
+.window::before{content:"";position:absolute;left:50%;top:0;width:5px;height:100%;transform:translateX(-50%);background:#713f12}
+.window::after{content:"";position:absolute;left:0;top:50%;width:100%;height:5px;transform:translateY(-50%);background:#713f12}
+.table{position:absolute;left:43%;top:50%;width:185px;height:68px;background:#92400e;border-radius:9px;border-bottom:14px solid #5c2d08;z-index:3}
+.table::before,.table::after{content:"";position:absolute;bottom:-100px;width:16px;height:100px;background:#5c2d08}
+.table::before{left:16px}
+.table::after{right:16px}
+.sofa{position:absolute;right:25px;bottom:45px;width:205px;height:100px;background:#7c3aed;border-radius:20px 20px 10px 10px;border-bottom:17px solid #4c1d95;z-index:3}
+.sofa::before{content:"";position:absolute;left:-7px;top:15px;width:219px;height:32px;border-radius:20px;background:#6d28d9}
+.plant{position:absolute;right:45px;top:34px;font-size:60px;z-index:4}
+.hideSpot{position:absolute;z-index:8;cursor:pointer;border:3px dashed rgba(255,255,255,.65);background:rgba(0,0,0,.14);border-radius:13px;transition:transform .15s,background .15s}
+.hideSpot:hover{transform:scale(1.04);background:rgba(255,255,255,.12)}
+.hideSpot:active{transform:scale(.97)}
+.hideLabel{position:absolute;bottom:4px;left:0;width:100%;text-align:center;font-size:10px;font-weight:900;text-shadow:0 2px 5px #000}
+#closet{left:35px;bottom:175px;width:100px;height:140px;background:#78350f}
+#closet .emoji{font-size:57px;text-align:center;margin-top:22px}
+#box{left:260px;bottom:44px;width:105px;height:83px;background:#b45309}
+#box .emoji{font-size:45px;text-align:center;margin-top:6px}
+#bed{right:285px;bottom:33px;width:145px;height:92px;background:#2563eb}
+#bed .emoji{font-size:47px;text-align:center;margin-top:7px}
+#playerSprite{position:absolute;width:40px;height:40px;z-index:30;font-size:30px;transform:translate3d(0,0,0);filter:drop-shadow(0 5px 4px rgba(0,0,0,.5));pointer-events:none}
+#catSprite{position:absolute;width:58px;height:58px;z-index:29;font-size:44px;transform:translate3d(0,0,0);filter:drop-shadow(0 6px 5px rgba(0,0,0,.55));pointer-events:none;transition:filter .1s}
+.catShadow{position:absolute;width:82px;height:28px;left:-12px;top:38px;border-radius:50%;background:rgba(0,0,0,.22);filter:blur(5px);z-index:-1}
+#toy{position:absolute;z-index:25;width:36px;height:36px;font-size:28px;cursor:pointer;filter:drop-shadow(0 4px 4px rgba(0,0,0,.5));animation:toyPulse 1.3s infinite}
+@keyframes toyPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+.collectible{position:absolute;z-index:20;width:32px;height:32px;font-size:25px;cursor:pointer;animation:floatItem 1.5s infinite ease-in-out;filter:drop-shadow(0 3px 4px rgba(0,0,0,.45))}
+@keyframes floatItem{0%,100%{margin-top:0}50%{margin-top:-5px}}
+#joystick{position:absolute;left:16px;bottom:15px;width:142px;height:142px;z-index:100;touch-action:none}
+#joystickBase{position:absolute;inset:0;border-radius:50%;background:rgba(8,15,26,.74);border:4px solid rgba(255,255,255,.38);box-shadow:inset 0 0 30px rgba(0,0,0,.6),0 12px 35px rgba(0,0,0,.35)}
+#joystickRing{position:absolute;width:105px;height:105px;left:18px;top:18px;border:1px solid rgba(255,255,255,.16);border-radius:50%}
+#joystickStick{position:absolute;width:60px;height:60px;left:41px;top:41px;border-radius:50%;border:4px solid rgba(255,255,255,.85);background:linear-gradient(145deg,#fbbf24,#f59e0b);box-shadow:0 8px 20px rgba(0,0,0,.5)}
+#message{min-height:25px;margin-top:5px;text-align:center;font-size:14px;font-weight:800;color:#e2e8f0}
+#pauseButton{position:absolute;right:20px;bottom:20px;z-index:110;width:48px;height:48px;border-radius:50%;background:rgba(8,15,26,.85);color:#fff;font-size:20px;border:2px solid #64748b;cursor:pointer}
+#hideButton{position:absolute;right:20px;bottom:80px;z-index:110;display:none;padding:12px 18px;border:0;border-radius:14px;background:#f59e0b;color:#111827;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 8px 25px rgba(0,0,0,.45)}
+#playerSprite{transition:opacity .25s}
+#gameOver{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.78);backdrop-filter:blur(8px)}
+#gameOver.show{display:flex}
+#gameOverBox{width:min(92vw,500px);padding:30px 24px;text-align:center;border:3px solid #475569;border-radius:24px;background:linear-gradient(#202d40,#111827);box-shadow:0 35px 100px rgba(0,0,0,.75);animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:scale(.75)}to{opacity:1;transform:scale(1)}}
+#resultIcon{font-size:55px}
+#resultTitle{margin:8px 0;font-size:34px}
+#resultText{color:#cbd5e1;line-height:1.5;margin-bottom:18px}
+.resultStats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:20px}
+.resultStat{padding:10px 5px;background:rgba(255,255,255,.06);border-radius:10px}
+.resultStat b{display:block;color:#facc15;font-size:18px}
+.resultStat span{color:#94a3b8;font-size:10px}
+#restartButton{border:0;padding:13px 27px;border-radius:13px;background:#f59e0b;color:#111827;font-size:17px;font-weight:900;cursor:pointer}
+#pauseOverlay{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.65);backdrop-filter:blur(5px)}
+#pauseOverlay.show{display:flex}
+.pauseBox{text-align:center;padding:30px;background:#172235;border:2px solid #475569;border-radius:20px}
+.pauseBox h2{margin-top:0}
+#continueButton{border:0;border-radius:12px;padding:12px 25px;background:#22c55e;color:#fff;font-weight:bold;cursor:pointer}
+@media (max-width:720px){
+#game{width:100vw;height:100vh;padding:6px;border:0;border-radius:0}
+#hud{grid-template-columns:repeat(3,1fr)}
+.card:nth-child(4),.card:nth-child(5){display:none}
+#room{height:calc(100vh - 150px);min-height:0}
+.window{left:20px;top:25px;width:100px;height:70px}
+.table{width:130px;left:43%}
+.sofa{width:145px;right:10px}
+#bed{display:none}
+#box{left:190px}
+#joystick{width:125px;height:125px}
+#joystickRing{width:91px;height:91px;left:17px;top:17px}
+#joystickStick{width:54px;height:54px;left:35px;top:35px}
+#pauseButton{right:13px;bottom:13px}
+#hideButton{right:13px;bottom:72px}
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+<h1>🐱 Прятки от кота <span style="color:#f59e0b">4.0</span></h1>
+
+<div id="hud">
+  <div class="card"><div class="label">ВРЕМЯ</div><div class="value">⏱️ <span id="timer">45</span></div></div>
+  <div class="card"><div class="label">ЭНЕРГИЯ</div><div class="value">⚡ <span id="staminaText">100</span>%</div><div class="bar"><div id="staminaFill" class="fill"></div></div></div>
+  <div class="card"><div class="label">ШУМ</div><div class="value">🔊 <span id="noiseText">0</span>%</div><div class="bar"><div id="noiseFill" class="fill"></div></div></div>
+  <div class="card"><div class="label">КОТ</div><div id="catState" class="value">💤 Спокоен</div><div class="bar"><div id="dangerFill" class="fill" style="width:0%"></div></div></div>
+  <div class="card"><div class="label">СЧЁТ</div><div id="score" class="value">⭐ 0</div></div>
+</div>
+
+<div id="room">
+  <div id="roomLight"></div>
+  <div id="nightOverlay"></div>
+  <div class="window"></div>
+  <div class="plant">🌿</div>
+  <div class="table"></div>
+  <div class="sofa"></div>
+
+  <div id="closet" class="hideSpot"><div class="emoji">🚪</div><div class="hideLabel">ШКАФ</div></div>
+  <div id="box" class="hideSpot"><div class="emoji">📦</div><div class="hideLabel">КОРОБКА</div></div>
+  <div id="bed" class="hideSpot"><div class="emoji">🛏️</div><div class="hideLabel">КРОВАТЬ</div></div>
+
+  <div id="toy" title="Нажми, чтобы бросить игрушку">🧶</div>
+  <div id="playerSprite">🧍</div>
+  <div id="catSprite"><div class="catShadow"></div>🐈</div>
+
+  <div id="joystick">
+    <div id="joystickBase"></div>
+    <div id="joystickRing"></div>
+    <div id="joystickStick"></div>
+  </div>
+
+  <button id="hideButton">🙈 Спрятаться</button>
+  <button id="pauseButton">⏸️</button>
+</div>
+
+<div id="message">🕹️ Управляй джойстиком. Продержись 45 секунд!</div>
+</div>
+
+<div id="gameOver">
+  <div id="gameOverBox">
+    <div id="resultIcon">🐱</div>
+    <div id="resultTitle">Тебя поймали!</div>
+    <div id="resultText">Кот оказался быстрее.</div>
+    <div class="resultStats">
+      <div class="resultStat"><b id="finalScore">0</b><span>ОЧКИ</span></div>
+      <div class="resultStat"><b id="finalTime">0</b><span>СЕКУНД</span></div>
+      <div class="resultStat"><b id="bestScore">0</b><span>РЕКОРД</span></div>
+    </div>
+    <button id="restartButton">🔄 Играть снова</button>
+  </div>
+</div>
+
+<div id="pauseOverlay">
+  <div class="pauseBox">
+    <h2>⏸️ Пауза</h2>
+    <p>Кот тоже ждёт...</p>
+    <button id="continueButton">▶️ Продолжить</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const roomEl = $("room"), playerEl = $("playerSprite"), catEl = $("catSprite"),
+      toyEl = $("toy"), joystickEl = $("joystick"), stickEl = $("joystickStick"),
+      timerEl = $("timer"), staminaTextEl = $("staminaText"), staminaFillEl = $("staminaFill"),
+      noiseTextEl = $("noiseText"), noiseFillEl = $("noiseFill"), dangerFillEl = $("dangerFill"),
+      catStateEl = $("catState"), scoreEl = $("score"), messageEl = $("message"),
+      gameOverEl = $("gameOver"), resultIconEl = $("resultIcon"), resultTitleEl = $("resultTitle"),
+      resultTextEl = $("resultText"), finalScoreEl = $("finalScore"), finalTimeEl = $("finalTime"),
+      bestScoreEl = $("bestScore"), restartButton = $("restartButton"),
+      pauseButton = $("pauseButton"), pauseOverlay = $("pauseOverlay"),
+      continueButton = $("continueButton");
+
+const playerState = { x:420, y:330, vx:0, vy:0, stamina:100, noise:0, hidden:false };
+const catState = { x:90, y:90, vx:0, vy:0, targetX:90, targetY:90, mode:"patrol", searchTimer:0, investigationTimer:0 };
+
+let timeLeft = 45, score = 0, gameEnded = false, paused = false;
+let lastTime = performance.now(), caughtCount = 0;
+let joystickX = 0, joystickY = 0, joystickActive = false;
+const collectibles = [];
+let collectedCoins = 0, decoys = 3, coinTimer = 0;
+
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const distance = (x1, y1, x2, y2) => Math.hypot(x1 - x2, y1 - y2);
+function approach(cur, target, amt) {
+  return cur < target ? Math.min(cur + amt, target) : Math.max(cur - amt, target);
+}
+const roomWidth = () => roomEl.clientWidth;
+const roomHeight = () => roomEl.clientHeight;
+
+function renderPlayer() {
+  playerEl.style.transform = `translate3d(${playerState.x}px, ${playerState.y}px, 0)`;
+}
+function renderCat() {
+  catEl.style.transform = `translate3d(${catState.x}px, ${catState.y}px, 0)`;
+}
+
+/* ===== ДЖОЙСТИК ===== */
+function resetJoystick() {
+  joystickActive = false;
+  joystickX = 0;
+  joystickY = 0;
+  const center = joystickEl.clientWidth / 2 - stickEl.clientWidth / 2;
+  stickEl.style.left = center + "px";
+  stickEl.style.top = center + "px";
+}
+
+function updateJoystick(clientX, clientY) {
+  const rect = joystickEl.getBoundingClientRect();
+  let dx = clientX - (rect.left + rect.width / 2);
+  let dy = clientY - (rect.top + rect.height / 2);
+  const max = 39;
+  const len = Math.hypot(dx, dy);
+  if (len > max) { dx = dx / len * max; dy = dy / len * max; }
+  joystickX = dx / max;
+  joystickY = dy / max;
+  const center = joystickEl.clientWidth / 2 - stickEl.clientWidth / 2;
+  stickEl.style.left = center + dx + "px";
+  stickEl.style.top = center + dy + "px";
+}
+
+joystickEl.addEventListener("pointerdown", e => {
+  if (gameEnded || paused) return;
+  joystickActive = true;
+  joystickEl.setPointerCapture(e.pointerId);
+  updateJoystick(e.clientX, e.clientY);
+});
+joystickEl.addEventListener("pointermove", e => {
+  if (!joystickActive) return;
+  updateJoystick(e.clientX, e.clientY);
+});
+joystickEl.addEventListener("pointerup", resetJoystick);
+joystickEl.addEventListener("pointercancel", resetJoystick);
+
+/* ===== КЛАВИАТУРА ===== */
+const keys = {};
+window.addEventListener("keydown", e => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+
+function getInput() {
+  let x = joystickX, y = joystickY;
+  if (keys["a"] || keys["arrowleft"]) x -= 1;
+  if (keys["d"] || keys["arrowright"]) x += 1;
+  if (keys["w"] || keys["arrowup"]) y -= 1;
+  if (keys["s"] || keys["arrowdown"]) y += 1;
+  const len = Math.hypot(x, y);
+  if (len > 1) { x /= len; y /= len; }
+  return { x, y };
+}
+
+/* ===== ИГРОК ===== */
+function updatePlayer(dt) {
+  const k = dt / 16.667;
+  const input = getInput();
+  const power = Math.min(1, Math.hypot(input.x, input.y));
+
+  if (playerState.hidden) {
+    playerState.vx = 0;
+    playerState.vy = 0;
+    playerState.noise = 0;
+    playerState.stamina = clamp(playerState.stamina + 0.2 * k, 0, 100);
+    if (power > 0.5 && performance.now() - hideStart > 500) leaveHiding();
+    return;
+  }
+
+  let speed = 2.0 + power * 0.6;
+  if (playerState.stamina < 15) speed *= 0.6;
+
+  const targetVX = input.x * speed;
+  const targetVY = input.y * speed;
+  const accel = 0.15 * k;
+
+  playerState.vx = approach(playerState.vx, targetVX, accel);
+  playerState.vy = approach(playerState.vy, targetVY, accel);
+
+  if (power < 0.05) {
+    const f = Math.pow(0.84, k);
+    playerState.vx *= f;
+    playerState.vy *= f;
+  }
+
+  playerState.x += playerState.vx * k;
+  playerState.y += playerState.vy * k;
+
+  playerState.x = clamp(playerState.x, 3, roomWidth() - 42);
+  playerState.y = clamp(playerState.y, 3, roomHeight() - 42);
+
+  if (power > 0.1) playerState.stamina -= 0.105 * power * k;
+  else playerState.stamina += 0.16 * k;
+  playerState.stamina = clamp(playerState.stamina, 0, 100);
+
+  const movementSpeed = Math.hypot(playerState.vx, playerState.vy);
+  if (movementSpeed > 0.15) playerState.noise += 0.12 * movementSpeed * k;
+  else playerState.noise -= 0.18 * k;
+  playerState.noise = clamp(playerState.noise, 0, 100);
+
+  renderPlayer();
+}
+
+/* ===== КОТ ===== */
+function chooseCatTarget() {
+  const padding = 35;
+  catState.targetX = padding + Math.random() * (roomWidth() - padding * 2);
+  catState.targetY = padding + Math.random() * (roomHeight() - padding * 2);
+}
+
+function updateCat(dt) {
+  if (playerState.hidden) {
+    updateCatSearch(dt);
+    return;
+  }
+
+  const d = distance(catState.x, catState.y, playerState.x, playerState.y);
+
+  if (catState.investigationTimer > 0) catState.investigationTimer -= dt;
+  const distracted = catState.investigationTimer > 0 && d > 90;
+
+  if (distracted) catState.mode = "investigate";
+  else if (d < 130) catState.mode = "chase";
+  else if (d < 300 && playerState.noise > 25) catState.mode = "investigate";
+  else catState.mode = "patrol";
+
+  if (!distracted) {
+    if (catState.mode === "chase") {
+      catState.targetX = playerState.x + playerState.vx * 10;
+      catState.targetY = playerState.y + playerState.vy * 10;
+    } else if (catState.mode === "investigate") {
+      catState.targetX = playerState.x + playerState.vx * 15;
+      catState.targetY = playerState.y + playerState.vy * 15;
+    } else {
+      catState.searchTimer -= dt;
+      if (catState.searchTimer <= 0) {
+        catState.searchTimer = 1500 + Math.random() * 2000;
+        chooseCatTarget();
+      }
+    }
+  }
+
+  moveCatSmoothly(dt);
+
+  const newDistance = distance(catState.x, catState.y, playerState.x, playerState.y);
+  if (newDistance < 40) loseGame("Кот догнал тебя!");
+}
+
+function moveCatSmoothly(dt) {
+  const k = dt / 16.667;
+  let dx = catState.targetX - catState.x;
+  let dy = catState.targetY - catState.y;
+  const d = Math.hypot(dx, dy);
+  if (d > 1) { dx /= d; dy /= d; }
+
+  let maxSpeed;
+  if (catState.mode === "chase") maxSpeed = 1.9;
+  else if (catState.mode === "investigate") maxSpeed = 1.4;
+  else maxSpeed = 0.8;
+
+  const targetVX = dx * maxSpeed;
+  const targetVY = dy * maxSpeed;
+  const base = catState.mode === "chase" ? 0.12 : 0.055;
+  const acc = 1 - Math.pow(1 - base, k);
+
+  catState.vx += (targetVX - catState.vx) * acc;
+  catState.vy += (targetVY - catState.vy) * acc;
+
+  if (d < 25) {
+    const f = Math.pow(0.88, k);
+    catState.vx *= f;
+    catState.vy *= f;
+  }
+
+  catState.x += catState.vx * k;
+  catState.y += catState.vy * k;
+
+  catState.x = clamp(catState.x, 0, roomWidth() - 55);
+  catState.y = clamp(catState.y, 0, roomHeight() - 55);
+
+  renderCat();
+}
+
+function updateCatSearch(dt) {
+  catState.mode = "search";
+  catState.investigationTimer -= dt;
+  if (catState.investigationTimer <= 0) {
+    catState.investigationTimer = 1500 + Math.random() * 2000;
+    chooseCatTarget();
+  }
+  moveCatSmoothly(dt);
+
+  if (distance(catState.x, catState.y, playerState.x, playerState.y) < 45) {
+    loseGame("Кот нашёл тебя в укрытии!");
+  }
+}
+
+function updateCatHUD() {
+  if (catState.mode === "chase") {
+    catStateEl.textContent = "😾 ПРЕСЛЕДУЕТ";
+    catStateEl.className = "value chasing";
+  } else if (catState.mode === "investigate") {
+    catStateEl.textContent = "👀 ИЩЕТ ШУМ";
+    catStateEl.className = "value alert";
+  } else {
+    catStateEl.textContent = "💤 СПОКОЕН";
+    catStateEl.className = "value searching";
+  }
+}
+
+function updateDanger() {
+  if (playerState.hidden) {
+    dangerFillEl.style.width = "5%";
+    return;
+  }
+  const d = distance(catState.x, catState.y, playerState.x, playerState.y);
+  let danger = 0;
+  if (d < 100) danger = 100 - d;
+  else if (d < 260) danger = (260 - d) / 2;
+  danger += playerState.noise * 0.25;
+  danger = clamp(danger, 0, 100);
+  dangerFillEl.style.width = danger + "%";
+}
+
+function updateHUD() {
+  timerEl.textContent = Math.ceil(timeLeft);
+  staminaTextEl.textContent = Math.round(playerState.stamina);
+  staminaFillEl.style.width = playerState.stamina + "%";
+  noiseTextEl.textContent = Math.round(playerState.noise);
+  noiseFillEl.style.width = playerState.noise + "%";
+  scoreEl.textContent = "⭐ " + Math.floor(score);
+
+  updateDanger();
+  updateCatHUD();
+  updateHideButton();
+
+  const d = distance(catState.x, catState.y, playerState.x, playerState.y);
+
+  if (playerState.hidden) messageEl.textContent = "🙈 Ты спрятался. Кот тебя пока не видит.";
+  else if (d < 80) messageEl.textContent = "🚨 ОПАСНО! БЕГИ!";
+  else if (d < 160) messageEl.textContent = "😨 Кот совсем рядом!";
+  else if (playerState.noise > 65) messageEl.textContent = "🔊 Ты слишком сильно шумел!";
+  else if (playerState.stamina < 20) messageEl.textContent = "⚡ Сил почти не осталось...";
+  else messageEl.textContent = "🤫 Тише... продержись до конца.";
+}
+
+/* ===== УКРЫТИЯ ===== */
+function getSpotCenter(el) {
+  return {
+    x: el.offsetLeft + el.offsetWidth / 2,
+    y: el.offsetTop + el.offsetHeight / 2
+  };
+}
+
+let hideStart = 0;
+
+function leaveHiding() {
+  playerState.hidden = false;
+  playerEl.style.opacity = "1";
+  catState.investigationTimer = 0;
+  messageEl.textContent = "🏃 Ты выбрался из укрытия!";
+}
+
+function tryHide(el) {
+  if (gameEnded || paused) return;
+
+  if (playerState.hidden) {
+    leaveHiding();
+    return;
+  }
+
+  const center = getSpotCenter(el);
+  const d = distance(playerState.x + 18, playerState.y + 18, center.x, center.y);
+
+  if (d > 140) {
+    messageEl.textContent = "🚶 Подойди ближе к укрытию!";
+    return;
+  }
+
+  playerState.hidden = true;
+  playerState.x = center.x - 18;
+  playerState.y = center.y - 18;
+  playerState.vx = 0;
+  playerState.vy = 0;
+  playerEl.style.opacity = "0.35";
+  renderPlayer();
+  resetJoystick();
+  playerState.noise = 0;
+  hideStart = performance.now();
+  score += 20;
+  messageEl.textContent = "👻 Ты стал прозрачным. Кот тебя не видит! Двинь джойстик, чтобы выйти.";
+}
+
+const hideButton = $("hideButton");
+
+function nearestSpot() {
+  let best = null, bestD = 140;
+  ["closet", "box", "bed"].forEach(id => {
+    const el = $(id);
+    if (el.offsetParent === null) return;
+    const c = getSpotCenter(el);
+    const d = distance(playerState.x + 18, playerState.y + 18, c.x, c.y);
+    if (d < bestD) { bestD = d; best = el; }
+  });
+  return best;
+}
+
+function updateHideButton() {
+  if (gameEnded || paused) { hideButton.style.display = "none"; return; }
+  if (playerState.hidden) {
+    hideButton.textContent = "🏃 Выйти";
+    hideButton.style.display = "block";
+  } else if (nearestSpot()) {
+    hideButton.textContent = "🙈 Спрятаться";
+    hideButton.style.display = "block";
+  } else {
+    hideButton.style.display = "none";
+  }
+}
+
+hideButton.addEventListener("click", function () {
+  if (playerState.hidden) leaveHiding();
+  else {
+    const spot = nearestSpot();
+    if (spot) tryHide(spot);
+  }
+});
+
+["closet", "box", "bed"].forEach(id => {
+  $(id).addEventListener("click", function () { tryHide(this); });
+});
+
+/* ===== ПРИМАНКА ===== */
+toyEl.addEventListener("click", function (event) {
+  event.stopPropagation();
+  if (gameEnded || paused || playerState.hidden) return;
+
+  if (decoys <= 0) {
+    messageEl.textContent = "🧶 Приманок больше нет!";
+    return;
+  }
+
+  decoys--;
+
+  const tx = 50 + Math.random() * (roomWidth() - 100);
+  const ty = 50 + Math.random() * (roomHeight() - 100);
+
+  toyEl.style.left = tx + "px";
+  toyEl.style.top = ty + "px";
+
+  catState.mode = "investigate";
+  catState.targetX = tx;
+  catState.targetY = ty;
+  catState.investigationTimer = 3500;
+
+  score += 75;
+  messageEl.textContent = "🧶 Ты бросил игрушку! Кот отвлёкся.";
+});
+
+/* ===== МОНЕТКИ ===== */
+function createCollectible() {
+  const el = document.createElement("div");
+  el.className = "collectible";
+  el.textContent = "⭐";
+
+  const x = 70 + Math.random() * (roomWidth() - 140);
+  const y = 70 + Math.random() * (roomHeight() - 140);
+
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+  roomEl.appendChild(el);
+
+  const item = { el, x, y };
+  collectibles.push(item);
+
+  el.addEventListener("click", function () {
+    if (gameEnded || paused) return;
+    score += 100;
+    collectedCoins++;
+    el.remove();
+    const index = collectibles.indexOf(item);
+    if (index !== -1) collectibles.splice(index, 1);
+    messageEl.textContent = "⭐ Монетка! +100 очков";
+  });
+}
+
+function checkCollectibles() {
+  for (let i = collectibles.length - 1; i >= 0; i--) {
+    const item = collectibles[i];
+    if (distance(playerState.x, playerState.y, item.x, item.y) < 35) {
+      score += 100;
+      collectedCoins++;
+      item.el.remove();
+      collectibles.splice(i, 1);
+    }
+  }
+}
+
+function updateCollectibles(dt) {
+  coinTimer -= dt;
+  if (coinTimer <= 0) {
+    coinTimer = 4000 + Math.random() * 3500;
+    if (collectibles.length < 3) createCollectible();
+  }
+  checkCollectibles();
+}
+
+/* ===== ПЕРЕЗАПУСК ===== */
+function resetGame() {
+  gameEnded = false;
+  paused = false;
+
+  gameOverEl.classList.remove("show");
+  pauseOverlay.classList.remove("show");
+
+  timeLeft = 45;
+  score = 0;
+  collectedCoins = 0;
+  decoys = 3;
+
+  playerState.x = roomWidth() / 2;
+  playerState.y = roomHeight() / 2 + 80;
+  playerState.vx = 0;
+  playerState.vy = 0;
+  playerState.stamina = 100;
+  playerState.noise = 0;
+  playerState.hidden = false;
+
+  catState.x = 70;
+  catState.y = 70;
+  catState.vx = 0;
+  catState.vy = 0;
+  catState.mode = "patrol";
+  catState.searchTimer = 0;
+  catState.investigationTimer = 0;
+
+  playerEl.style.display = "block";
+  playerEl.style.opacity = "1";
+
+  toyEl.style.left = (roomWidth() - 110) + "px";
+  toyEl.style.top = "80px";
+
+  collectibles.forEach(item => item.el.remove());
+  collectibles.length = 0;
+
+  for (let i = 0; i < 2; i++) createCollectible();
+
+  resetJoystick();
+  renderPlayer();
+  renderCat();
+
+  messageEl.textContent = "🕹️ Управляй джойстиком. Продержись 45 секунд!";
+  updateHUD();
+  lastTime = performance.now();
+}
+
+/* ===== ПОБЕДА / ПРОИГРЫШ ===== */
+function saveBest() {
+  const oldBest = Number(localStorage.getItem("catHideBest") || 0);
+  const best = Math.max(oldBest, Math.floor(score));
+  localStorage.setItem("catHideBest", best);
+  return best;
+}
+
+function winGame() {
+  if (gameEnded) return;
+  gameEnded = true;
+  resetJoystick();
+
+  score += Math.floor(timeLeft * 20);
+  const best = saveBest();
+
+  resultIconEl.textContent = "🏆";
+  resultTitleEl.textContent = "ТЫ ПОБЕДИЛ!";
+  resultTextEl.textContent = "Ты пережил охоту кота и продержался до конца!";
+  finalScoreEl.textContent = Math.floor(score);
+  finalTimeEl.textContent = "45";
+  bestScoreEl.textContent = best;
+  gameOverEl.classList.add("show");
+}
+
+function loseGame(reason) {
+  if (gameEnded) return;
+  gameEnded = true;
+  resetJoystick();
+  caughtCount++;
+
+  const best = saveBest();
+
+  resultIconEl.textContent = "🐱";
+  resultTitleEl.textContent = "ТЕБЯ ПОЙМАЛИ!";
+  resultTextEl.textContent = reason;
+  finalScoreEl.textContent = Math.floor(score);
+  finalTimeEl.textContent = Math.floor(45 - timeLeft);
+  bestScoreEl.textContent = best;
+  gameOverEl.classList.add("show");
+}
+
+/* ===== ПАУЗА ===== */
+function togglePause() {
+  if (gameEnded) return;
+  paused = !paused;
+  if (paused) {
+    pauseOverlay.classList.add("show");
+    resetJoystick();
+  } else {
+    pauseOverlay.classList.remove("show");
+    lastTime = performance.now();
+  }
+}
+
+pauseButton.addEventListener("click", togglePause);
+continueButton.addEventListener("click", togglePause);
+restartButton.addEventListener("click", resetGame);
+
+/* ===== ГЛАВНЫЙ ЦИКЛ ===== */
+function gameLoop(now) {
+  let dt = clamp(now - lastTime, 0, 33);
+  lastTime = now;
+
+  if (!gameEnded && !paused) {
+    updatePlayer(dt);
+    updateCat(dt);
+    updateCollectibles(dt);
+
+    timeLeft -= dt / 1000;
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      winGame();
+    }
+
+    if (Math.hypot(playerState.vx, playerState.vy) > 0.2) {
+      score += dt * 0.002;
+    }
+
+    updateHUD();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+/* ===== СТАРТ ===== */
+window.addEventListener("resize", function () {
+  playerState.x = clamp(playerState.x, 3, roomWidth() - 42);
+  playerState.y = clamp(playerState.y, 3, roomHeight() - 42);
+});
+
+resetGame();
+requestAnimationFrame(gameLoop);
+</script>
+
+</body>
+</html>
